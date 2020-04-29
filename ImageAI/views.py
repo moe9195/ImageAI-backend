@@ -51,7 +51,7 @@ class Processing(views.APIView):
                 if isinstance(im, str):
                     return Response(im, status=status.HTTP_405_METHOD_NOT_ALLOWED)
             else:
-                im = deep_art(img, "scream")
+                im = deep_art(img, "wave")
 
         else:
             pass
