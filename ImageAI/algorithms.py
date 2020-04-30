@@ -5,6 +5,8 @@ import scipy.misc
 import tensorflow as tf
 sys.path.insert(1, './fast-style-transfer/src')
 import vgg, transform, optimize, utils
+sys.path.insert(1, './deblur-gan/deblurgan')
+from model import generator_model
 from argparse import ArgumentParser
 from collections import defaultdict
 import time
@@ -15,7 +17,7 @@ import moviepy.video.io.ffmpeg_writer as ffmpeg_writer
 
 def super_resolution(img):
     # First we initialize the RDN (Recurral neural network model)
-    model = RDN(weights='noise-cancel')
+    model = RDNN(weights='noise-cancel')
 
     # Model is then used to 'predict' the higher resolution image
     processed_img_arr = model.predict(np.array(img))
@@ -119,3 +121,22 @@ def deep_art(img, style):
         im = Image.fromarray(styled[0,:,:].astype('uint8'), 'RGB')
 
         return im
+
+def deblur(img):
+    # load model and model weights
+    g = generator_model()
+    g.load_weights('./deblur-gan/generator.h5')
+
+    # resize image, center mean and normalize
+    img = cv2.resize(img, (256,256))[np.newaxis,...]
+    img = (img - 127.5) / 127.5
+    x_test = img
+
+    generated_images = g.predict(x=x_test)
+    generated = np.array([(img*127.5 + 127.5).astype('uint8') for img in generated_images])
+    x_test = (x_test*127.5 + 127.5).astype('uint8')
+    x = x_test[0, :, :, :]
+    img = generated[0, :, :, :]
+    output = np.concatenate((x, img), axis=1)
+    im = Image.fromarray(output.astype(np.uint8), 'RGB')
+    return im

@@ -5,11 +5,10 @@ import numpy as np
 from PIL import Image
 import argparse, base64, io, cv2, requests
 from ISR.models import RDN, RRDN
-from .algorithms import super_resolution, colorize, deep_art
+from .algorithms import super_resolution, colorize, deep_art, deblur
 
 from .Serializers import ProcessingSerializer
 from .models import ImageAI, Method
-
 
 
 class Processing(views.APIView):
@@ -23,7 +22,6 @@ class Processing(views.APIView):
             if 'base64' in img[10:30]:
                 img_b64 = img.split(',', 1)[1]
                 img = np.array(Image.open(io.BytesIO(base64.b64decode(img_b64))))
-                print(img)
             # check if it is a url
             else:
                 response = requests.get(img)
@@ -39,6 +37,9 @@ class Processing(views.APIView):
 
         # run each algorithm based on method and return processed img
         if method == "SuperResolution":
+            print("HERE")
+            print(img.shape)
+            print(np.prod(img.shape))
             im = super_resolution(img)
 
         elif method == "Colorize":
@@ -52,7 +53,8 @@ class Processing(views.APIView):
                     return Response(im, status=status.HTTP_405_METHOD_NOT_ALLOWED)
             else:
                 im = deep_art(img, "wave")
-
+        elif method == "Deblur":
+            im = deblur(img)
         else:
             pass
 
