@@ -110,7 +110,7 @@ def deep_art(img, style):
         else:
             saver.restore(sess, checkpoint_dir)
 
-        # in this case we do 1 image at a time, so num_iters = 1
+        # in this case we do 1 image at     a time, so num_iters = 1
         num_iters = 1
         pos = batch_size
 
@@ -123,6 +123,7 @@ def deep_art(img, style):
         return im
 
 def deblur(img):
+    print("YOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
     # load model and model weights
     g = generator_model()
     g.load_weights('./deblur-gan/generator.h5')
@@ -132,11 +133,8 @@ def deblur(img):
     img = (img - 127.5) / 127.5
     x_test = img
 
+    # make prediction and format output from model
     generated_images = g.predict(x=x_test)
-    generated = np.array([(img*127.5 + 127.5).astype('uint8') for img in generated_images])
-    x_test = (x_test*127.5 + 127.5).astype('uint8')
-    x = x_test[0, :, :, :]
-    img = generated[0, :, :, :]
-    output = np.concatenate((x, img), axis=1)
-    im = Image.fromarray(output.astype(np.uint8), 'RGB')
+    generated = np.array([(img*127.5 + 127.5).astype('uint8') for img in generated_images])[0,:,:,:]
+    im = Image.fromarray(generated.astype(np.uint8), 'RGB')
     return im

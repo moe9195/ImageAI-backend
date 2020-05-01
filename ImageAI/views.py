@@ -35,6 +35,16 @@ class Processing(views.APIView):
         if len(img.shape) == 2:
             img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
 
+        # In case of png with alpha channel
+        if len(img.shape) > 2 and img.shape[2] == 4:
+            #convert the image from RGBA2RGB
+            img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+
+        # In case image is black and white and has alpha channel
+        if len(img.shape) == 2 and img.shape[2] == 4:
+            # convert the image from RGBA2RGB
+            img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+
         # run each algorithm based on method and return processed img
         if method == "SuperResolution":
             print("HERE")
