@@ -1,0 +1,1 @@
+{'top_1_accuracy': 0.84056, 'top_5_accuracy': 0.9692}

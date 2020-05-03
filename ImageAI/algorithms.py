@@ -7,6 +7,10 @@ sys.path.insert(1, './fast-style-transfer/src')
 import vgg, transform, optimize, utils
 sys.path.insert(1, './deblur-gan/deblurgan')
 from model import generator_model
+sys.path.insert(1, './efficientnet')
+import  eval_ckpt_main as eval_ckpt
+import tensorflow.compat.v1 as tf
+from tensorflow.keras.models import load_model
 from argparse import ArgumentParser
 from collections import defaultdict
 import time
@@ -15,9 +19,12 @@ import subprocess
 from moviepy.video.io.VideoFileClip import VideoFileClip
 import moviepy.video.io.ffmpeg_writer as ffmpeg_writer
 
+
+
+
 def super_resolution(img):
     # First we initialize the RDN (Recurral neural network model)
-    model = RDNN(weights='noise-cancel')
+    model = RDN(weights='noise-cancel')
 
     # Model is then used to 'predict' the higher resolution image
     processed_img_arr = model.predict(np.array(img))
@@ -86,19 +93,19 @@ def deep_art(img, style):
     curr_num = 0
 
     # setup GPU configurations for model
-    soft_config = tf.compat.v1.ConfigProto(allow_soft_placement=True)
+    soft_config = tf.ConfigProto(allow_soft_placement=True)
     soft_config.gpu_options.allow_growth = True
 
     # setup batch shape from image size to be compatible with model input shape
     with g.as_default(), g.device(device_t), \
-            tf.compat.v1.Session(config=soft_config) as sess:
+            tf.Session(config=soft_config) as sess:
         batch_shape = (batch_size,) + img_shape
-        img_placeholder = tf.compat.v1.placeholder(tf.float32, shape=batch_shape,
+        img_placeholder = tf.placeholder(tf.float32, shape=batch_shape,
                                          name='img_placeholder')
 
         # 'predict' the output stylized image and save it
         pred = transform.net(img_placeholder)
-        saver = tf.compat.v1.train.Saver()
+        saver = tf.train.Saver()
 
         # use pretrained model as the checkpoint to start from
         if os.path.isdir(checkpoint_dir):
@@ -123,7 +130,9 @@ def deep_art(img, style):
         return im
 
 def deblur(img):
-    print("YOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+    # sess = tf.Session(config=tf.ConfigProto(
+    #       allow_soft_placement=True, log_device_placement=True))
+
     # load model and model weights
     g = generator_model()
     g.load_weights('./deblur-gan/generator.h5')
@@ -138,3 +147,35 @@ def deblur(img):
     generated = np.array([(img*127.5 + 127.5).astype('uint8') for img in generated_images])[0,:,:,:]
     im = Image.fromarray(generated.astype(np.uint8), 'RGB')
     return im
+
+
+def classify(img):
+    # first save image as a temporary file
+    Image.fromarray(img).save('./images/storage/temp.jpeg')
+    img_path = './images/storage/temp.jpeg'
+
+    # load the model from the efficientnet directory
+    model_name = 'efficientnet-b3'
+    ckpt_dir = './efficientnet/noisy-student-efficientnet-b3'
+
+    # load the labels file
+    labels_map_file = './efficientnet/labels_map.txt'
+
+    # get the evaluation driver and make the prediction
+    eval_driver = eval_ckpt.get_eval_driver(model_name)
+    pred_idx, pred_prob = eval_driver.eval_example_images(ckpt_dir, [img_path], labels_map_file)
+
+    # delete the image from storage
+    os.remove(img_path)
+
+    classes = json.loads(tf.gfile.Open(labels_map_file).read())
+
+    obj = {}
+    print(pred_idx)
+    print(pred_prob)
+    for idx, prob in zip(pred_idx[0], pred_prob[0]):
+        obj[str(round(prob,3))] = classes[str(idx)]
+
+
+
+    return(obj)

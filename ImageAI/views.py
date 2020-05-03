@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 import argparse, base64, io, cv2, requests
 from ISR.models import RDN, RRDN
-from .algorithms import super_resolution, colorize, deep_art, deblur
+from .algorithms import super_resolution, colorize, deep_art, deblur, classify
 
 from .Serializers import ProcessingSerializer
 from .models import ImageAI, Method
@@ -65,6 +65,10 @@ class Processing(views.APIView):
                 im = deep_art(img, "wave")
         elif method == "Deblur":
             im = deblur(img)
+        elif method == "Classify":
+            # in the case of classification, we return an object instead of an image
+            obj = classify(img)
+            return Response(obj, status=status.HTTP_201_CREATED)
         else:
             pass
 
