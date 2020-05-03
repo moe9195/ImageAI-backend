@@ -120,6 +120,10 @@ dmypy.json
 .pyre/
 
 bw-colorization
+deblur-gan
+efficientnet
+fast-style-transfer
+images
 capstone_env
 
 # End of https://www.gitignore.io/api/django
