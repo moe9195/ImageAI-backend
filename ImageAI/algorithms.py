@@ -20,8 +20,6 @@ from moviepy.video.io.VideoFileClip import VideoFileClip
 import moviepy.video.io.ffmpeg_writer as ffmpeg_writer
 
 
-
-
 def super_resolution(img):
     # First we initialize the RDN (Recurral neural network model)
     model = RDN(weights='noise-cancel')

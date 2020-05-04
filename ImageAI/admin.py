@@ -1,6 +1,4 @@
 from django.contrib import admin
-from .models import ImageAI
-from .models import Method
+from .models import Profile
 
-admin.site.register(ImageAI)
-admin.site.register(Method)
+admin.site.register(Profile)

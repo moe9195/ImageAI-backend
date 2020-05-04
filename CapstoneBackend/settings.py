@@ -39,9 +39,13 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'ImageAI',
     'rest_framework',
+    'rest_framework_api_key',
     'ISR',
     'corsheaders',
+    'rest_framework_swagger'
 ]
+
+API_KEY_CUSTOM_HEADER = "HTTP_IMAGEAI_API_KEY"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -49,12 +53,22 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.BrokenLinkEmailsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema'
+}
+
 ROOT_URLCONF = 'CapstoneBackend.urls'
 
 TEMPLATES = [

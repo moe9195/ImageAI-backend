@@ -1,14 +1,64 @@
 from django.shortcuts import render
 from rest_framework import views, status
 from rest_framework.response import Response
+from rest_framework.generics import  CreateAPIView,RetrieveAPIView,UpdateAPIView
 import numpy as np
 from PIL import Image
 import argparse, base64, io, cv2, requests
 from ISR.models import RDN, RRDN
 from .algorithms import super_resolution, colorize, deep_art, deblur, classify
+from datetime import datetime, timedelta
+from rest_framework_api_key.models import APIKey
+from rest_framework_api_key.permissions import HasAPIKey
+from .Serializers import UserCreateSerializer, UserSerializer, ProfileSerializer
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from django.contrib.auth.models import User
+from .models import Profile
 
-from .Serializers import ProcessingSerializer
-from .models import ImageAI, Method
+class RegisterView(CreateAPIView):
+	serializer_class = UserCreateSerializer
+
+class ProfileDetails(RetrieveAPIView):
+    serializer_class = ProfileSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'user_id'
+    lookup_url_kwarg = 'profile_id'
+
+    def get_queryset(self):
+        return Profile.objects.filter(user = self.request.user)
+
+class ProfileUpdate(UpdateAPIView):
+    serializer_class = ProfileSerializer
+    def put(self, request, profile_id, format=None):
+       profile = Profile.objects.get(user_id = profile_id)
+       serializer = ProfileSerializer(profile, data=request.data)
+       if serializer.is_valid():
+    	   serializer.save()
+    	   return Response(serializer.data)
+       return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserDetails(RetrieveAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'id'
+    lookup_url_kwarg = 'user_id'
+
+    def get_queryset(self):
+        return User.objects.filter(id = self.request.user.id)
+
+class GiveKey(views.APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self , request , *args , **kwargs):
+        name = request.data.get("name")
+        api_key, key = APIKey.objects.create_key(name=name ,expiry_date =datetime.now()+timedelta(days=30) )
+        profile = Profile.objects.get(user = self.request.user)
+        profile.limit += 60
+        profile.subscribed = True
+        profile.key= key
+        profile.save()
+        return Response(key , status=status.HTTP_201_CREATED)
 
 
 class Processing(views.APIView):
@@ -59,16 +109,21 @@ class Processing(views.APIView):
             style = request.data.get("style")
             if style:
                 im = deep_art(img, style)
+                # if style selected is invalid return the error string
                 if isinstance(im, str):
                     return Response(im, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            # if no style is selected, default to wave
             else:
                 im = deep_art(img, "wave")
+
         elif method == "Deblur":
             im = deblur(img)
+
         elif method == "Classify":
             # in the case of classification, we return an object instead of an image
             obj = classify(img)
             return Response(obj, status=status.HTTP_201_CREATED)
+
         else:
             pass
 
