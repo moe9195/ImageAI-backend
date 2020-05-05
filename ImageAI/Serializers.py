@@ -35,16 +35,14 @@ class UserCreateSerializer(serializers.ModelSerializer):
         fields = ['username', 'password', 'first_name', "last_name", "email"]
 
     def create(self, validated_data):
-        username = validated_data['username']
-        password = validated_data['password']
-        new_user = User(username=username)
-        new_user.set_password(password)
-        new_user.first_name = validated_data['first_name']
-        new_user.last_name = validated_data['last_name']
-        new_user.email = validated_data['email']
+        new_user = User(**validated_data)
+        new_user.set_password(validated_data['password'])
         new_user.save()
-        profile =Profile.objects.create(user = new_user)
-        api_key, key = APIKey.objects.create_key(name=username, expiry_date = datetime.now() + timedelta(days=30))
+        profile = Profile.objects.create(user=new_user)
+        api_key, key = APIKey.objects.create_key(
+            name=username,
+            expiry_date = datetime.now() + timedelta(days=30)
+        )
         profile.limit += 60
         profile.key= key
         profile.save()
