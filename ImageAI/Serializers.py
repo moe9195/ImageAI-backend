@@ -1,8 +1,32 @@
-from rest_framework import serializers
 from django.contrib.auth.models import User
-from datetime import datetime, timedelta
+from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_api_key.models import APIKey
 from .models import ImageAI, Profile
+from datetime import datetime, timedelta
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        exclude = ['user']
+
+
+class UserSerializer(serializers.ModelSerializer):
+    profile = ProfileSerializer()
+    class Meta:
+        model = User
+        fields = ["first_name", "last_name","username", "email", "profile"]
+
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+
+        token['user'] = UserSerializer(user).data
+        return token
+
 
 class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -26,15 +50,6 @@ class UserCreateSerializer(serializers.ModelSerializer):
         profile.save()
         return validated_data
 
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ["first_name", "last_name","username", "email"]
-
-class ProfileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Profile
-        exclude = ['user']
 
 class ColorizeSerializer(serializers.ModelSerializer):
     class Meta:

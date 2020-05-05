@@ -10,22 +10,20 @@ from .algorithms import super_resolution, colorize, deep_art, deblur, classify
 from datetime import datetime, timedelta
 from rest_framework_api_key.models import APIKey
 from rest_framework_api_key.permissions import HasAPIKey
-from .Serializers import UserCreateSerializer, UserSerializer, ProfileSerializer, ColorizeSerializer
+from .serializers import UserCreateSerializer, UserSerializer, ProfileSerializer, ColorizeSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from django.contrib.auth.models import User
 from .models import Profile
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
+
 
 class RegisterView(CreateAPIView):
 	serializer_class = UserCreateSerializer
 
-class ProfileDetails(RetrieveAPIView):
-    serializer_class = ProfileSerializer
-    permission_classes = [IsAuthenticated]
-    lookup_field = 'user_id'
-    lookup_url_kwarg = 'profile_id'
-
-    def get_queryset(self):
-        return Profile.objects.filter(user = self.request.user)
 
 class ProfileUpdate(UpdateAPIView):
     serializer_class = ProfileSerializer
@@ -38,18 +36,7 @@ class ProfileUpdate(UpdateAPIView):
        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UserDetails(RetrieveAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
-    lookup_field = 'id'
-    lookup_url_kwarg = 'user_id'
-
-    def get_queryset(self):
-        return User.objects.filter(id = self.request.user.id)
-
 class GiveKey(views.APIView):
-
 	permission_classes = [IsAuthenticated]
 
 	def post(self, request, *args, **kwargs):
@@ -114,6 +101,7 @@ class SuperResolution(views.APIView):
 		encoded_img = encode_img(img_out, format)
 		return Response(encoded_img, status=status.HTTP_201_CREATED)
 
+
 class Colorize(views.APIView):
 	# serializer_class = ColorizeSerializer
 	permission_classes =[HasAPIKey]
@@ -124,6 +112,7 @@ class Colorize(views.APIView):
 		img_out = colorize(img)
 		encoded_img = encode_img(img_out, format)
 		return Response(encoded_img, status=status.HTTP_201_CREATED)
+
 
 class DeepArt(views.APIView):
 	permission_classes =[HasAPIKey]
@@ -145,6 +134,7 @@ class DeepArt(views.APIView):
 
 		encoded_img = encode_img(img_out, format)
 		return Response(encoded_img, status=status.HTTP_201_CREATED)
+
 
 class Deblur(views.APIView):
 	permission_classes =[HasAPIKey]
