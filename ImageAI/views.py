@@ -10,7 +10,7 @@ from .algorithms import super_resolution, colorize, deep_art, deblur, classify
 from datetime import datetime, timedelta
 from rest_framework_api_key.models import APIKey
 from rest_framework_api_key.permissions import HasAPIKey
-from .Serializers import UserCreateSerializer, UserSerializer, ProfileSerializer
+from .Serializers import UserCreateSerializer, UserSerializer, ProfileSerializer, ColorizeSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from django.contrib.auth.models import User
 from .models import Profile
@@ -63,78 +63,102 @@ class GiveKey(views.APIView):
 		return Response(key , status=status.HTTP_201_CREATED)
 
 
-class Processing(views.APIView):
+def preprocess_image(img):
+	# If the POSTED image is a string
+	if isinstance(img, str):
+		# check if it is base64
+		if 'base64' in img[10:30]:
+			img_b64 = img.split(',', 1)[1]
+			img = np.array(Image.open(io.BytesIO(base64.b64decode(img_b64))))
+		# check if it is a url
+		else:
+			response = requests.get(img)
+			img = np.array(Image.open(io.BytesIO(response.content)))
 
+	# If POSTED image is a file
+	else:
+		img = np.array(Image.open(io.BytesIO(img.file.read())))
+
+	# if image only has 1 channel convert it to 3 channels RGB
+	if len(img.shape) == 2:
+		img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+
+	# In case of png with alpha channel
+	if len(img.shape) > 2 and img.shape[2] == 4:
+		#convert the image from RGBA2RGB
+		img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+
+	# In case image is black and white and has alpha channel
+	if len(img.shape) == 2 and img.shape[2] == 4:
+		# convert the image from RGBA2RGB
+		img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+
+	return img
+
+def encode_img(img, format):
+	buffered =  io.BytesIO()
+	if not format:
+		format = 'JPEG'
+	img.save(buffered, format=format)
+	encoded_img = base64.b64encode(buffered.getvalue())
+
+	return encoded_img
+
+
+class SuperResolution(views.APIView):
 	permission_classes =[HasAPIKey]
-
 	def post(self, request, *args, **kwargs):
+		img = preprocess_image(request.data.get("img"))
+		format = request.data.get("format")
+		img_out = super_resolution(img)
+		encoded_img = encode_img(img_out, format)
+		return Response(encoded_img, status=status.HTTP_201_CREATED)
 
-	    img=request.data.get("img")
-	    method = request.data.get("method")
+class Colorize(views.APIView):
+	# serializer_class = ColorizeSerializer
+	permission_classes =[HasAPIKey]
+	def post(self, request, *args, **kwargs):
+		img = preprocess_image(request.data.get("img"))
+		format = request.data.get("format")
+	#	serializer = ColorizeSerializer(img=img, format=format)
+		img_out = colorize(img)
+		encoded_img = encode_img(img_out, format)
+		return Response(encoded_img, status=status.HTTP_201_CREATED)
 
-	    # If the POSTED image is a string
-	    if isinstance(img, str):
-	        # check if it is base64
-	        if 'base64' in img[10:30]:
-	            img_b64 = img.split(',', 1)[1]
-	            img = np.array(Image.open(io.BytesIO(base64.b64decode(img_b64))))
-	        # check if it is a url
-	        else:
-	            response = requests.get(img)
-	            img = np.array(Image.open(io.BytesIO(response.content)))
+class DeepArt(views.APIView):
+	permission_classes =[HasAPIKey]
+	def post(self, request, *args, **kwargs):
+		img = preprocess_image(request.data.get("img"))
+		format = request.data.get("format")
+		style = request.data.get("style")
 
-	    # If POSTED image is a file
-	    else:
-	        img = np.array(Image.open(io.BytesIO(img.file.read())))
+		if style:
+		    img_out = deep_art(img, style)
 
-	    # if image only has 1 channel convert it to 3 channels RGB
-	    if len(img.shape) == 2:
-	        img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+		    # if style selected is invalid return the error string
+		    if isinstance(im, str):
+		        return Response(im, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-	    # In case of png with alpha channel
-	    if len(img.shape) > 2 and img.shape[2] == 4:
-	        #convert the image from RGBA2RGB
-	        img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+        # if no style is selected, default to wave
+		else:
+		    img_out = deep_art(img, "wave")
 
-	    # In case image is black and white and has alpha channel
-	    if len(img.shape) == 2 and img.shape[2] == 4:
-	        # convert the image from RGBA2RGB
-	        img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+		encoded_img = encode_img(img_out, format)
+		return Response(encoded_img, status=status.HTTP_201_CREATED)
 
-	    # run each algorithm based on method and return processed img
-	    if method == "SuperResolution":
-	        print("HERE")
-	        print(img.shape)
-	        print(np.prod(img.shape))
-	        im = super_resolution(img)
+class Deblur(views.APIView):
+	permission_classes =[HasAPIKey]
+	def post(self, request, *args, **kwargs):
+		img = preprocess_image(request.data.get("img"))
+		format = request.data.get("format")
+		img_out = deblur(img)
+		encoded_img = encode_img(img_out, format)
+		return Response(encoded_img, status=status.HTTP_201_CREATED)
 
-	    elif method == "Colorize":
-	        im = colorize(img)
 
-	    elif method == "DeepArt":
-	        style = request.data.get("style")
-	        if style:
-	            im = deep_art(img, style)
-	            # if style selected is invalid return the error string
-	            if isinstance(im, str):
-	                return Response(im, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-	        # if no style is selected, default to wave
-	        else:
-	            im = deep_art(img, "wave")
-
-	    elif method == "Deblur":
-	        im = deblur(img)
-
-	    elif method == "Classify":
-	        # in the case of classification, we return an object instead of an image
-	        obj = classify(img)
-	        return Response(obj, status=status.HTTP_201_CREATED)
-
-	    else:
-	        pass
-
-	    # The image is then encoded to base64 and returned to the request user
-	    buffered =  io.BytesIO()
-	    im.save(buffered, format="JPEG")
-	    encoded_img = base64.b64encode(buffered.getvalue())
-	    return Response(encoded_img, status=status.HTTP_201_CREATED)
+class Classify(views.APIView):
+	permission_classes =[HasAPIKey]
+	def post(self, request, *args, **kwargs):
+		img = preprocess_image(request.data.get("img"))
+		obj = classify(img)
+		return Response(obj, status=status.HTTP_201_CREATED)

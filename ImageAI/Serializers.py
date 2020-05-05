@@ -1,19 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Profile
 from datetime import datetime, timedelta
 from rest_framework_api_key.models import APIKey
-from .models import ImageAI
-
-
-class ProcessingSerializer(serializers.ModelSerializer):
-    method = serializers.SerializerMethodField()
-    class Meta:
-        model = ImageAI
-        fields = ["method"]
-    def get_method(self, obj):
-        return (Method.object.get(id=self.request.data.get("method")))
-
+from .models import ImageAI, Profile
 
 class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -46,3 +35,13 @@ class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         exclude = ['user']
+
+class ColorizeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ImageAI
+        fields = ['img', 'format']
+
+    def create(self, img, format):
+        obj = ImageAI.objects.create(img = img, format = format)
+        obj.save()
+        return obj
