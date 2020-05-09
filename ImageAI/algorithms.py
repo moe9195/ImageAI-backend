@@ -1,34 +1,32 @@
-import utils
-import optimize
-import transform
-import vgg
-import moviepy.video.io.ffmpeg_writer as ffmpeg_writer
-from moviepy.video.io.VideoFileClip import VideoFileClip
-import subprocess
-import json
-import time
-from collections import defaultdict
-from argparse import ArgumentParser
-from tensorflow.keras.models import load_model
-import tensorflow.compat.v1 as tf
-import eval_ckpt_main as eval_ckpt
-from model import generator_model
+import sys
 from ISR.models import RDN, RRDN
 import argparse
 import base64
 import io
 import cv2
 import requests
-import sys
 import numpy as np
 import pdb
 import os
 from PIL import Image
 import scipy.misc
 import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.keras.models import load_model
+from argparse import ArgumentParser
+from collections import defaultdict
+import time
+import json
+import subprocess
+from moviepy.video.io.VideoFileClip import VideoFileClip
+import moviepy.video.io.ffmpeg_writer as ffmpeg_writer
+import time
 sys.path.insert(1, './fast-style-transfer/src')
+import vgg, transform, optimize, utils
 sys.path.insert(1, './deblur-gan/deblurgan')
+from model import generator_model
 sys.path.insert(1, './efficientnet')
+import eval_ckpt_main as eval_ckpt
 
 
 def super_resolution(img):
@@ -174,15 +172,6 @@ def deblur(img):
 
 
 def classify(img):
-    # for the demo
-    time.sleep(2)
-    return {
-        "0.42": "Egyptian cat",
-        "0.274": "pizza",
-        "0.181": "shirt, t-shirt",
-        "0.037": "Persian cat",
-        "0.035": "lynx, catamount"
-    }
     # first save image as a temporary file
     Image.fromarray(img).save('./images/storage/temp.jpeg')
     img_path = './images/storage/temp.jpeg'
