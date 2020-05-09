@@ -1,24 +1,34 @@
+import utils
+import optimize
+import transform
+import vgg
+import moviepy.video.io.ffmpeg_writer as ffmpeg_writer
+from moviepy.video.io.VideoFileClip import VideoFileClip
+import subprocess
+import json
+import time
+from collections import defaultdict
+from argparse import ArgumentParser
+from tensorflow.keras.models import load_model
+import tensorflow.compat.v1 as tf
+import eval_ckpt_main as eval_ckpt
+from model import generator_model
 from ISR.models import RDN, RRDN
-import argparse, base64, io, cv2, requests, sys, numpy as np, pdb, os
+import argparse
+import base64
+import io
+import cv2
+import requests
+import sys
+import numpy as np
+import pdb
+import os
 from PIL import Image
 import scipy.misc
 import tensorflow as tf
 sys.path.insert(1, './fast-style-transfer/src')
-import vgg, transform, optimize, utils
 sys.path.insert(1, './deblur-gan/deblurgan')
-from model import generator_model
 sys.path.insert(1, './efficientnet')
-import  eval_ckpt_main as eval_ckpt
-import tensorflow.compat.v1 as tf
-from tensorflow.keras.models import load_model
-from argparse import ArgumentParser
-from collections import defaultdict
-import time
-import json
-import subprocess
-from moviepy.video.io.VideoFileClip import VideoFileClip
-import moviepy.video.io.ffmpeg_writer as ffmpeg_writer
-import time
 
 
 def super_resolution(img):
@@ -31,9 +41,12 @@ def super_resolution(img):
 
     return im
 
+
 def colorize(img):
     # Loading model and network weights from model file
-    model = cv2.dnn.readNetFromCaffe('./bw-colorization/model/colorization_deploy_v2.prototxt', './bw-colorization/model/colorization_release_v2.caffemodel')
+    model = cv2.dnn.readNetFromCaffe(
+        './bw-colorization/model/colorization_deploy_v2.prototxt',
+        './bw-colorization/model/colorization_release_v2.caffemodel')
     pts = np.load('./bw-colorization/model/pts_in_hull.npy')
 
     # Adding the 1x1 convolutions to the model
@@ -43,7 +56,8 @@ def colorize(img):
     model.getLayer(class8).blobs = [pts.astype("float32")]
     model.getLayer(conv8).blobs = [np.full([1, 313], 2.606, dtype="float32")]
 
-    # Load the image, normalize the pixels to [0, 1] range, convert colorspace to Lab color
+    # Load the image, normalize the pixels to [0, 1] range, convert colorspace
+    # to Lab color
     scaled = img.astype("float32") / 255.0
     lab = cv2.cvtColor(scaled, cv2.COLOR_RGB2LAB)
 
@@ -77,12 +91,20 @@ def colorize(img):
 
     return im
 
+
 def deep_art(img, style):
     # check if style is valid
-    if not style in ["la_muse", "rain_princess", "scream", "udnie", "wave", "wreck"]:
+    if style not in [
+        "la_muse",
+        "rain_princess",
+        "scream",
+        "udnie",
+        "wave",
+            "wreck"]:
         return "Please enter a valid style from the list: [la_muse, rain_princess, scream, udnie, wave, wreck]"
 
-    # whether to use GPU or CPU, setup batch size, and select which style to use
+    # whether to use GPU or CPU, setup batch size, and select which style to
+    # use
     device_t = '/gpu:0'
     batch_size = 1
     checkpoint_dir = f"./fast-style-transfer/models/{style}.ckpt"
@@ -121,12 +143,14 @@ def deep_art(img, style):
         pos = batch_size
 
         # change image dimensions to 1xNxMx3 from NxMx3 then run the model
-        styled = sess.run(pred, feed_dict={img_placeholder:img[np.newaxis,...]})
+        styled = sess.run(
+            pred, feed_dict={img_placeholder: img[np.newaxis, ...]})
 
         # change output back to 1xNxMx3 and convert to image
-        im = Image.fromarray(styled[0,:,:].astype('uint8'), 'RGB')
+        im = Image.fromarray(styled[0, :, :].astype('uint8'), 'RGB')
 
         return im
+
 
 def deblur(img):
     # sess = tf.Session(config=tf.ConfigProto(
@@ -137,13 +161,14 @@ def deblur(img):
     g.load_weights('./deblur-gan/generator.h5')
 
     # resize image, center mean and normalize
-    img = cv2.resize(img, (256,256))[np.newaxis,...]
+    img = cv2.resize(img, (256, 256))[np.newaxis, ...]
     img = (img - 127.5) / 127.5
     x_test = img
 
     # make prediction and format output from model
     generated_images = g.predict(x=x_test)
-    generated = np.array([(img*127.5 + 127.5).astype('uint8') for img in generated_images])[0,:,:,:]
+    generated = np.array([(img * 127.5 + 127.5).astype('uint8')
+                          for img in generated_images])[0, :, :, :]
     im = Image.fromarray(generated.astype(np.uint8), 'RGB')
     return im
 
@@ -171,7 +196,8 @@ def classify(img):
 
     # get the evaluation driver and make the prediction
     eval_driver = eval_ckpt.get_eval_driver(model_name)
-    pred_idx, pred_prob = eval_driver.eval_example_images(ckpt_dir, [img_path], labels_map_file)
+    pred_idx, pred_prob = eval_driver.eval_example_images(
+        ckpt_dir, [img_path], labels_map_file)
 
     # delete the image from storage
     os.remove(img_path)
@@ -182,8 +208,6 @@ def classify(img):
     print(pred_idx)
     print(pred_prob)
     for idx, prob in zip(pred_idx[0], pred_prob[0]):
-        obj[str(round(prob,3))] = classes[str(idx)]
-
-
+        obj[str(round(prob, 3))] = classes[str(idx)]
 
     return(obj)

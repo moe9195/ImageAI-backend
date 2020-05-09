@@ -5,6 +5,7 @@ from rest_framework_api_key.models import APIKey
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import ImageAI, Profile
 
+
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
@@ -13,9 +14,10 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer()
+
     class Meta:
         model = User
-        fields = ["first_name", "last_name","username", "email", "profile"]
+        fields = ["first_name", "last_name", "username", "email", "profile"]
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -29,6 +31,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+
     class Meta:
         model = User
         fields = ['username', 'password', 'first_name', "last_name", "email"]
@@ -40,12 +43,13 @@ class UserCreateSerializer(serializers.ModelSerializer):
         profile = Profile.objects.create(user=new_user)
         api_key, key = APIKey.objects.create_key(
             name=username,
-            expiry_date = datetime.now() + timedelta(days=30)
+            expiry_date=datetime.now() + timedelta(days=30)
         )
         profile.limit += 60
-        profile.key= key
+        profile.key = key
         profile.save()
         return validated_data
+
 
 class ColorizeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -53,6 +57,6 @@ class ColorizeSerializer(serializers.ModelSerializer):
         fields = ['img', 'format']
 
     def create(self, img, format):
-        obj = ImageAI.objects.create(img = img, format = format)
+        obj = ImageAI.objects.create(img=img, format=format)
         obj.save()
         return obj
