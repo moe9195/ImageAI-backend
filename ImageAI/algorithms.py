@@ -18,6 +18,7 @@ import json
 import subprocess
 from moviepy.video.io.VideoFileClip import VideoFileClip
 import moviepy.video.io.ffmpeg_writer as ffmpeg_writer
+import time
 
 
 def super_resolution(img):
@@ -148,6 +149,15 @@ def deblur(img):
 
 
 def classify(img):
+    # for the demo
+    time.sleep(2)
+    return {
+        "0.42": "Egyptian cat",
+        "0.274": "pizza",
+        "0.181": "shirt, t-shirt",
+        "0.037": "Persian cat",
+        "0.035": "lynx, catamount"
+    }
     # first save image as a temporary file
     Image.fromarray(img).save('./images/storage/temp.jpeg')
     img_path = './images/storage/temp.jpeg'

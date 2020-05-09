@@ -14,10 +14,9 @@ urlpatterns = [
     path('deblur/', views.Deblur.as_view()),
     path('classify/', views.Classify.as_view()),
     path('key/', views.GiveKey.as_view()),
-    path('login/', TokenObtainPairView.as_view(), name='login'),
+    path('login/', views.MyTokenObtainPairView.as_view(), name='login'),
     path('register/', views.RegisterView.as_view(), name='register'),
-    path('profile/<int:profile_id>/detail/', views.ProfileDetails.as_view(), name='profile-detail'),
-    path('profile/<int:profile_id>/update/', views.ProfileUpdate.as_view(), name='profile-update'),
     path('user/<int:user_id>/detail/', views.UserDetails.as_view(), name='user-detail'),
+    path('profile/<int:profile_id>/update/', views.ProfileUpdate.as_view(), name='profile-update'),
     path('documentation', schema_view, name="documentation"),
 ]
