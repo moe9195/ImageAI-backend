@@ -5,11 +5,6 @@ class ImageAI(models.Model):
     img = models.ImageField(blank=True,  null=True)
     format = models.TextField(blank=True, null=True)
 
-
-# class Method(models.Model):
-#     name = models.CharField(max_length=50)
-#     description = models.TextField(blank=True, null=True)
-
 class Profile (models.Model):
     user = models.OneToOneField(User, on_delete = models.CASCADE , primary_key = True )
     subscribed = models.BooleanField(default = False)
